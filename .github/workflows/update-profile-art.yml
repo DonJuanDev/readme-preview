@@ -26,7 +26,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Scrape real contribution data (no auth needed)
+      - name: Fetch contribution data
+        env:
+          # Optional classic PAT with `read:user` so private-repo greens stay
+          # in the SVG. Without it, falls back to the public HTML calendar.
+          GH_TOKEN: ${{ secrets.CONTRIB_TOKEN || secrets.GITHUB_TOKEN }}
         run: python scripts/fetch_contributions.py
 
       - name: Render contribution graph SVG (boxes)

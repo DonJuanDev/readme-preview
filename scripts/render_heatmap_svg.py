@@ -18,8 +18,8 @@ HERE = os.path.dirname(__file__)
 IN_PATH = os.path.join(HERE, "..", "data", "contributions.json")
 OUT_PATH = os.path.join(HERE, "..", "contrib-heatmap.svg")
 
-# GitHub-ish green ramp: empty -> brightest. Level 5 is a brighter neon top end.
-PALETTE = ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353", "#69f0a0"]
+# GitHub dark-theme contribution greens (data-level 0–4).
+PALETTE = ["#161b22", "#0e4429", "#006d32", "#26a641", "#39d353"]
 
 CELL = 12
 GAP = 3
@@ -44,23 +44,18 @@ ROW_T = 0.045   # per-row delay contribution (top -> bottom cascade)
 CELL_DUR = 0.42
 
 
-def level_for(count):
-    if count == 0:
+def level_for(count, max_count):
+    """Fallback when a day has no GitHub contributionLevel."""
+    if count <= 0 or max_count <= 0:
         return 0
-    if count <= 5:
-        return 1
-    if count <= 15:
-        return 2
-    if count <= 30:
-        return 3
-    if count <= 50:
-        return 4
-    return 5
+    step = max_count / 4
+    return min(4, max(1, int((count + step - 1e-9) / step)))
 
 
 def build_grid(days):
     first = datetime.date.fromisoformat(days[0]["date"])
     lead_pad = (first.weekday() + 1) % 7  # sunday=0
+    max_count = max((d["count"] for d in days), default=0)
     grid = []
     col = [None] * lead_pad
     for d in days:
@@ -68,7 +63,9 @@ def build_grid(days):
         weekday = (date.weekday() + 1) % 7
         while len(col) < weekday:
             col.append(None)
-        col.append((d["date"], d["count"], level_for(d["count"])))
+        raw = d.get("level")
+        lvl = raw if raw is not None else level_for(d["count"], max_count)
+        col.append((d["date"], d["count"], max(0, min(int(lvl), 4))))
         if len(col) == 7:
             grid.append(col)
             col = []
